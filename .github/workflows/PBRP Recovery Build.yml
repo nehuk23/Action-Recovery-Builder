@@ -30,7 +30,7 @@ on:
       COMMON_PATH:
         description: 'COMMON_PATH (if no common tree, leave blank)'
         required: false
-        default: 'device/samsung/s5e8535-commo'n
+        default: 'device/samsung/s5e8535-common'
       DEVICE_NAME:
         description: 'DEVICE_NAME'
         required: true
