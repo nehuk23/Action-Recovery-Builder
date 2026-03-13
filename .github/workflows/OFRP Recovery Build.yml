@@ -111,10 +111,18 @@ jobs:
         set +e
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
+        
+        # Inject bootconfig for recovery
+        cat << EOF >> device/${{ github.event.inputs.DEVICE_PATH }}/device.mk
+        BOARD_BOOTCONFIG += androidboot.mode=recovery
+        BOARD_BOOTCONFIG += androidboot.force_recovery=1
+        EOF
+        
         set -e
         lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng && make clean && mka adbd ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all)
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}
       continue-on-error: true
+
 
     - name: Check the output directory before uploading
       run: |
