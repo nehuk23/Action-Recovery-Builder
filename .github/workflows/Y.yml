@@ -114,7 +114,7 @@ jobs:
         
         # Inject bootconfig for recovery
         cat << EOF >> device/samsung/m14x/device.mk
-        BOARD_BOOTCONFIG += androidboot.force_recovery=1
+        BOARD_BOOTCONFIG += androidboot.mode=recovery
         EOF
         
         set -e
