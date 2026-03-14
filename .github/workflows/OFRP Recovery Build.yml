@@ -111,6 +111,7 @@ jobs:
         set +e
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
+        export SOONG_ALLOW_MISSING_DEPENDENCIES=true
         cat << EOF >> device/samsung/device.mk
         BOARD_KERNEL_CMDLINE += sec_reboot=recovery
         EOF
