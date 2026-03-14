@@ -14,7 +14,7 @@ on:
       DEVICE_TREE_URL:
         description: 'DEVICE_TREE_URL'
         required: true
-        default: 'https://github.com/TeamWin/android_device_samsung_m14x'
+        default: 'https://github.com/nehuk23/0android_device_samsung_m14x.git'
       DEVICE_TREE_BRANCH:
         description: 'DEVICE_TREE_BRANCH'
         required: true
@@ -113,10 +113,6 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         
         # Inject bootconfig for recovery
-        cat << EOF >> device/samsung/m14x/device.mk
-        BOARD_BOOTCONFIG += androidboot.mode=recovery
-        BOARD_BOOTCONFIG += androidboot.force_recovery=1
-        EOF
         
         set -e
         lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng && make clean && mka adbd ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all)
