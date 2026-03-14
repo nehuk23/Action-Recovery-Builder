@@ -113,7 +113,7 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         
         # Inject bootconfig for recovery
-        cat << EOF >> device/${{ github.event.inputs.DEVICE_PATH }}/device.mk
+        cat << EOF >> device/samsung/m14x/device.mk
         BOARD_BOOTCONFIG += androidboot.mode=recovery
         BOARD_BOOTCONFIG += androidboot.force_recovery=1
         EOF
