@@ -116,6 +116,11 @@ jobs:
       uses: pierotofy/set-swap-space@master
       with:
         swap-size-gb: 12
+    - name: Install Toolchain
+      run: |
+       cd ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
+       sudo apt-get update
+       sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
     - name: Clone and Build Kernel with custom config flags
       run: |
