@@ -15,7 +15,7 @@ jobs:
           sudo apt update
           sudo apt install -y bc build-essential libssl-dev libelf-dev flex bison clang lld llvm git gcc-aarch64-linux-gnu libarchive-tools
 
-            - name: Download AOSP Clang
+      - name: Download AOSP Clang
         run: |
           mkdir -p clang
           # The correct direct download link for Clang r450784d (v14.0.6)
