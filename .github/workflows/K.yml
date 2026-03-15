@@ -1,4 +1,4 @@
-name: Full Kernel Inclusion Build
+name: Samsung Kernel Inclusion Build
 
 on:
   workflow_dispatch:
@@ -13,12 +13,15 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt update
-          sudo apt install -y bc build-essential flex bison libssl-dev libelf-dev clang lld llvm git
+          sudo apt install -y bc build-essential flex bison libssl-dev libelf-dev clang lld llvm git libarchive-tools
 
-      - name: Clone Kernel Source
+      - name: Clone Kernel and Toolchain
         run: |
-          # Replace the URL with your actual kernel repository
+          # Clone your kernel (Update the URL below)
           git clone --depth=1 https://github.com kernel-source
+          
+          # Clone Proton Clang if not already in your kernel source
+          git clone --depth=1 https://github.com proton-clang
 
       - name: Create Inclusion Config
         run: |
@@ -62,19 +65,23 @@ jobs:
         run: |
           cd kernel-source
           
-          # Set toolchain path (ensure this path matches your Proton-Clang location)
-          export PATH="${{ github.workspace }}/kernel-source/scripts/proton-clang/bin:$PATH"
+          # Set Proton-Clang Path
+          export PATH="${{ github.workspace }}/proton-clang/bin:$PATH"
           
-          # 1. Load base defconfig (Update 'exynos_defconfig' to your actual file name)
+          # 1. Base Config (REPLACE exynos_defconfig with your actual file name)
           make ARCH=arm64 CC=clang CROSS_COMPILE=aarch64-linux-gnu- exynos_defconfig
           
-          # 2. Merge inclusion flags
+          # 2. Force Samsung Security Off (Samsung kernels often ignore .config for these)
+          sed -i 's/CONFIG_RKP_KDP=y/CONFIG_RKP_KDP=n/g' .config
+          sed -i 's/CONFIG_TIMA=y/CONFIG_TIMA=n/g' .config
+          
+          # 3. Full Inclusion Merge
           ./scripts/kconfig/merge_config.sh -m .config my_inclusion.config
           
-          # 3. Finalize config
+          # 4. Finalize
           make ARCH=arm64 CC=clang CROSS_COMPILE=aarch64-linux-gnu- olddefconfig
 
-          # 4. Build with LD=ld.lld to bypass the .relr.dyn linker error
+          # 5. Main Build
           make -j$(nproc) ARCH=arm64 \
             CC=clang \
             LD=ld.lld \
