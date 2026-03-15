@@ -1,0 +1,93 @@
+name: Full Kernel Inclusion Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Workflow
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y bc build-essential flex bison libssl-dev libelf-dev clang lld llvm git
+
+      - name: Clone Kernel Source
+        run: |
+          # Replace the URL with your actual kernel repository
+          git clone --depth=1 https://github.com kernel-source
+
+      - name: Create Inclusion Config
+        run: |
+          cat <<EOF > kernel-source/my_inclusion.config
+          CONFIG_PRODUCTSHIP=n
+          CONFIG_PANIC_ON_OOPS=y
+          CONFIG_PANIC_ON_WARN=n
+          CONFIG_SEC_REBOOT_RECOVERY=y
+          CONFIG_SOFTLOCKUP_DETECTOR=y
+          CONFIG_HARDLOCKUP_DETECTOR=y
+          CONFIG_LOCKUP_DETECTOR=y
+          CONFIG_WATCHDOG=y
+          CONFIG_WATCHDOG_CORE=y
+          CONFIG_SEC_SBOOT_CHECK=n
+          CONFIG_PSTORE=y
+          CONFIG_PSTORE_CONSOLE=y
+          CONFIG_PSTORE_PMSG=y
+          CONFIG_PSTORE_RAM=y
+          CONFIG_PSTORE_RAM_ANNOTATION=y
+          CONFIG_RAMOOPS=y
+          CONFIG_RAMOOPS_DUMP_OOPS=y
+          CONFIG_S3C2410_WATCHDOG=y
+          CONFIG_S3C2410_WATCHDOG_ATBOOT=y
+          CONFIG_S3C2410_WATCHDOG_DEFAULT_TIME=100
+          CONFIG_EXYNOS_PMU=y
+          CONFIG_RKP_KDP=n
+          CONFIG_RKP_NS_PROT=n
+          CONFIG_TIMA=n
+          CONFIG_SEC_RESTRICT_SETUID=n
+          CONFIG_ALWAYS_ENFORCE=n
+          CONFIG_SECURITY_SELINUX_DEVELOP=y
+          CONFIG_MODULE_SIG_PROTECT=y
+          CONFIG_IKCONFIG_PROC=y
+          CONFIG_EARLY_PRINTK=y
+          CONFIG_PANIC_TIMEOUT=15
+          CONFIG_SELINUX_DEVELOP=y
+          CONFIG_SEC_DEBUG=y
+          EOF
+
+      - name: Compile Kernel
+        run: |
+          cd kernel-source
+          
+          # Set toolchain path (ensure this path matches your Proton-Clang location)
+          export PATH="${{ github.workspace }}/kernel-source/scripts/proton-clang/bin:$PATH"
+          
+          # 1. Load base defconfig (Update 'exynos_defconfig' to your actual file name)
+          make ARCH=arm64 CC=clang CROSS_COMPILE=aarch64-linux-gnu- exynos_defconfig
+          
+          # 2. Merge inclusion flags
+          ./scripts/kconfig/merge_config.sh -m .config my_inclusion.config
+          
+          # 3. Finalize config
+          make ARCH=arm64 CC=clang CROSS_COMPILE=aarch64-linux-gnu- olddefconfig
+
+          # 4. Build with LD=ld.lld to bypass the .relr.dyn linker error
+          make -j$(nproc) ARCH=arm64 \
+            CC=clang \
+            LD=ld.lld \
+            AR=llvm-ar \
+            NM=llvm-nm \
+            OBJCOPY=llvm-objcopy \
+            OBJDUMP=llvm-objdump \
+            STRIP=llvm-strip \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kernel-Image
+          path: kernel-source/arch/arm64/boot/Image*
