@@ -15,10 +15,10 @@ jobs:
           sudo apt update
           sudo apt install -y bc build-essential libssl-dev libelf-dev flex bison clang lld llvm git gcc-aarch64-linux-gnu libarchive-tools
 
-      - name: Download AOSP Clang
+            - name: Download AOSP Clang
         run: |
           mkdir -p clang
-          # Matches CONFIG_CC_VERSION_TEXT="Android (8490178, based on r450784d) clang version 14.0.6"
+          # The correct direct download link for Clang r450784d (v14.0.6)
           curl -L "https://android.googlesource.com" -o clang.tgz
           tar -xzf clang.tgz -C clang
 
