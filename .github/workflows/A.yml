@@ -46,7 +46,7 @@ on:
       KERNEL_SOURCE_URL:
         description: 'KERNEL_SOURCE_URL (for building kernel first)'
         required: true
-        default: 'https://github.com/KrrishJaat/android_kernel_samsung_s5e8535.git'
+        default: 'https://github.com/nehuk23/android_kernel_samsung_s5e8535'
       KERNEL_SOURCE_BRANCH:
         description: 'KERNEL_SOURCE_BRANCH'
         required: true
