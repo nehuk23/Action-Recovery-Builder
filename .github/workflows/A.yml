@@ -46,15 +46,15 @@ on:
       KERNEL_SOURCE_URL:
         description: 'KERNEL_SOURCE_URL (for building kernel first)'
         required: true
-        default: 'https://github.com/nehuk23/kernel_equinox_s5e8535'
+        default: 'https://github.com/KrrishJaat/android_kernel_samsung_s5e8535.git'
       KERNEL_SOURCE_BRANCH:
         description: 'KERNEL_SOURCE_BRANCH'
         required: true
-        default: 'wip'
+        default: 'lineage-23.0'
       KERNEL_DEFCONFIG:
         description: 'KERNEL_DEFCONFIG'
         required: true
-        default: 's5e8535-m14xnsxx_defconfig'
+        default: 'm14x_defconfig'
 
 jobs:
   build:
