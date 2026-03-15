@@ -46,11 +46,11 @@ on:
       KERNEL_SOURCE_URL:
         description: 'KERNEL_SOURCE_URL (for building kernel first)'
         required: true
-        default: 'https://github.com/nehuk23/android_kernel_samsung_s5e8535.git'
+        default: 'https://github.com/nostalgiceagle/kernel_equinox_s5e8535.git'
       KERNEL_SOURCE_BRANCH:
         description: 'KERNEL_SOURCE_BRANCH'
         required: true
-        default: 'android-12.1'
+        default: 'backports'
       KERNEL_DEFCONFIG:
         description: 'KERNEL_DEFCONFIG'
         required: true
