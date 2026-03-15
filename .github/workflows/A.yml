@@ -46,7 +46,7 @@ on:
       KERNEL_SOURCE_URL:
         description: 'KERNEL_SOURCE_URL (for building kernel first)'
         required: true
-        default: 'https://github.com/nostalgiceagle/kernel_equinox_s5e8535.git'
+        default: 'https://github.com/nehuk23/kernel_equinox_s5e8535'
       KERNEL_SOURCE_BRANCH:
         description: 'KERNEL_SOURCE_BRANCH'
         required: true
@@ -54,7 +54,7 @@ on:
       KERNEL_DEFCONFIG:
         description: 'KERNEL_DEFCONFIG'
         required: true
-        default: 'm14x_defconfig'
+        default: 's5e8535-m14xnsxx_defconfig'
 
 jobs:
   build:
