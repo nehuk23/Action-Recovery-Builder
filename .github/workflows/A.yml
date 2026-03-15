@@ -123,7 +123,7 @@ jobs:
         cd ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
         
         # 1. Download Clang Toolchain (Required for your CONFIG_CC_IS_CLANG=y)
-        git clone https://github.com --depth=1 scripts/proton-clang
+        git clone https://github.com/kdrag0n/proton-clang --depth=1 scripts/proton-clang
         
         # 2. Clone kernel source
         git clone ${{ github.event.inputs.KERNEL_SOURCE_URL }} -b ${{ github.event.inputs.KERNEL_SOURCE_BRANCH }} kernel-source
