@@ -13,7 +13,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt update
-          sudo apt install -y bc build-essential libssl-dev libelf-dev flex bison clang lld llvm git gcc-aarch64-linux-gnu libarchive-tools
+          sudo apt install -y bc build-essential libssl-dev dwarves libelf-dev flex bison clang lld llvm git gcc-aarch64-linux-gnu libarchive-tools
 
       - name: Download AOSP Clang
         run: |
