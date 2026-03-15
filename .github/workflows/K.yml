@@ -13,7 +13,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt update
-          sudo apt install -y bc build-essential flex bison libssl-dev libelf-dev clang-14 lld-14 llvm-14 git gcc-aarch64-linux-gnu libarchive-tools
+          sudo apt install -y bc build-essential libssl-dev libelf-dev flex bison libssl-dev libelf-dev clang-14 lld-14 llvm-14 git gcc-aarch64-linux-gnu libarchive-tools
 
       - name: Clone Kernel Source
         run: |
