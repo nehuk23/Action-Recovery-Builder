@@ -24,11 +24,11 @@ on:
         required: true
         default: 'device/samsung/m14x'
       COMMON_TREE_URL:
-        description: 'COMMON_TREE_URL (if no common tree, leave blank)'
+        description: 'COMMON_TREE_URL (leave blank if none)'
         required: false
         default: 'https://github.com/Teamwin/android_device_samsung_s5e8535-common.git'
       COMMON_PATH:
-        description: 'COMMON_PATH (if no common tree, leave blank)'
+        description: 'COMMON_PATH (leave blank if none)'
         required: false
         default: 'device/samsung/s5e8535-common'
       DEVICE_NAME:
@@ -44,7 +44,7 @@ on:
         required: true
         default: 'recovery'
       KERNEL_SOURCE_URL:
-        description: 'KERNEL_SOURCE_URL (for building kernel first)'
+        description: 'KERNEL_SOURCE_URL'
         required: true
         default: 'https://github.com/nehuk23/android_kernel_samsung_s5e8535'
       KERNEL_SOURCE_BRANCH:
@@ -63,120 +63,71 @@ jobs:
     permissions:
       contents: write
     steps:
- 
-    # You might want to Checkout your repo first, but not mandatory
     - name: Check Out
       uses: actions/checkout@v3
 
-    # Cleanup The Actions Workspace Using Custom Composite Run Actions
-    - name: Cleanup
+    - name: Cleanup Workspace
       uses: rokibhasansagar/slimhub_actions@main
 
     - name: Initialize workspace
+      id: pwd
       run: |
         mkdir workspace
         cd workspace
         echo "workspace-folder=$(pwd)" >> $GITHUB_OUTPUT
-      id: pwd
 
-    - name: Prepare the build environment
+    - name: Prepare build environment
+      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
       run: |
+        sudo apt update
         sudo apt install git aria2 gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu -y
         git clone https://gitlab.com/OrangeFox/misc/scripts
         cd scripts
         sudo bash setup/android_build_env.sh
         sed -i 's/cd -/cd ../g' setup/install_android_sdk.sh
         sudo bash setup/install_android_sdk.sh
-      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
 
-    - name: Sync OrangeFox sources and minimal manifest
+    - name: Sync OrangeFox sources
+      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
       run: |
-        cd ${{ steps.pwd.outputs.workspace-folder }}
         git clone ${{ github.event.inputs.SYNC_URL }}
         cd sync
         ./orangefox_sync.sh --branch ${{ github.event.inputs.MANIFEST_BRANCH }} --path ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
-      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
 
-    - name: Clone device tree
+    - name: Clone Trees
+      working-directory: ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
       run: |
-        cd ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
         git clone ${{ github.event.inputs.DEVICE_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ./${{ github.event.inputs.DEVICE_PATH }}
-      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
-
-    - name: Clone common tree
-      if: |
-        github.event.inputs.COMMON_TREE_URL != null
-        && github.event.inputs.COMMON_PATH != null
-      run: |
-        cd ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
-        git clone ${{ github.event.inputs.COMMON_TREE_URL }} -b android-12.1 ./${{ github.event.inputs.COMMON_PATH }}
-      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
+        if [ -n "${{ github.event.inputs.COMMON_TREE_URL }}" ]; then
+          git clone ${{ github.event.inputs.COMMON_TREE_URL }} -b android-12.1 ./${{ github.event.inputs.COMMON_PATH }}
+        fi
 
     - name: Set Swap Space
       uses: pierotofy/set-swap-space@master
       with:
         swap-size-gb: 12
-     
 
-    - name: Clone and Build Kernel (Clang + GKI + Samsung Flags)
+    - name: Clone and Build Kernel
+      working-directory: ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
       run: |
-        cd ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
-        
-        # 1. Download Clang Toolchain (Required for your CONFIG_CC_IS_CLANG=y)
         git clone https://github.com/kdrag0n/proton-clang --depth=1 scripts/proton-clang
-        
-        # 2. Clone kernel source
         git clone ${{ github.event.inputs.KERNEL_SOURCE_URL }} -b ${{ github.event.inputs.KERNEL_SOURCE_BRANCH }} kernel-source
         
-        # 3. Create kernel config fragment with all your Samsung flags
         cat << 'KCONFIG' > kernel-config-fragment
         CONFIG_SECTION_MISMATCH_WARN_ONLY=y
         CONFIG_PRODUCTSHIP=n
-        CONFIG_PANIC_ON_OOPS=y
-        CONFIG_PANIC_ON_WARN=n
         CONFIG_SEC_REBOOT_RECOVERY=y
-        CONFIG_SOFTLOCKUP_DETECTOR=y
-        CONFIG_HARDLOCKUP_DETECTOR=y
-        CONFIG_LOCKUP_DETECTOR=y
-        CONFIG_WATCHDOG=y
-        CONFIG_WATCHDOG_CORE=y
-        CONFIG_SEC_SBOOT_CHECK=n
-        CONFIG_PSTORE=y
-        CONFIG_PSTORE_CONSOLE=y
-        CONFIG_PSTORE_PMSG=y
-        CONFIG_PSTORE_RAM=y
-        CONFIG_PSTORE_RAM_ANNOTATION=y
-        CONFIG_RAMOOPS=y
-        CONFIG_RAMOOPS_DUMP_OOPS=y
-        CONFIG_S3C2410_WATCHDOG=y
-        CONFIG_S3C2410_WATCHDOG_ATBOOT=y
-        CONFIG_S3C2410_WATCHDOG_DEFAULT_TIME=100
-        CONFIG_EXYNOS_PMU=y
-        CONFIG_RKP_KDP=n
-        CONFIG_RKP_NS_PROT=n
-        CONFIG_TIMA=n
-        CONFIG_SEC_RESTRICT_SETUID=n
-        CONFIG_ALWAYS_ENFORCE=n
-        CONFIG_SECURITY_SELINUX_DEVELOP=y
-        CONFIG_MODULE_SIG_PROTECT=y
         CONFIG_IKCONFIG_PROC=y
-        CONFIG_EARLY_PRINTK=y
-        CONFIG_PANIC_TIMEOUT=15
-        CONFIG_SELINUX_DEVELOP=y
-        CONFIG_SEC_DEBUG=y
-        CONFIG_PSTORE_RAM_MEM_ADDR=0x91200000
-        CONFIG_PSTORE_RAM_MEM_SIZE=0x200000
-        CONFIG_PSTORE_RAM_CONSOLE_SIZE=0x20000
-        CONFIG_PSTORE_RAM_RECORD_SIZE=0x20000
         KCONFIG
         
-        # 4. Setup environment for Clang
         export ARCH=arm64
         export PATH="${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/scripts/proton-clang/bin:$PATH"
         
-        # Build toolchain variables
-        CLANG_ARGS="ARCH=arm64 \
+        # FIXED: Added HOSTCC/HOSTCXX to avoid libc.so.6 linker errors
+        MAKE_ARGS="ARCH=arm64 \
                    CC=clang \
+                   HOSTCC=gcc \
+                   HOSTCXX=g++ \
                    CROSS_COMPILE=aarch64-linux-gnu- \
                    CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
                    LD=ld.lld \
@@ -188,97 +139,31 @@ jobs:
 
         mkdir -p out/kernel
         cd kernel-source
-        
-        # 5. Load base defconfig AND merge GKI config
-        make O=../out/kernel $CLANG_ARGS ${{ github.event.inputs.KERNEL_DEFCONFIG }} gki_defconfig
-        
-        # Merge your Samsung fragment
+        make O=../out/kernel $MAKE_ARGS ${{ github.event.inputs.KERNEL_DEFCONFIG }} gki_defconfig
         cat ../kernel-config-fragment >> ../out/kernel/.config
+        make O=../out/kernel $MAKE_ARGS olddefconfig
+        make O=../out/kernel $MAKE_ARGS -j$(nproc --all)
         
-        # Update config to apply all changes
-        make O=../out/kernel $CLANG_ARGS olddefconfig
-        
-        # 6. Build the kernel
-        make O=../out/kernel $CLANG_ARGS -j$(nproc --all)
-        
-        # 7. Verify and Copy Output
         mkdir -p ../prebuilt
-        if [ -f ../out/kernel/arch/arm64/boot/Image ]; then
-          cp ../out/kernel/arch/arm64/boot/Image ../prebuilt/Image
-          echo "Kernel Image built successfully"
-        else
-          echo "Error: Kernel Image not found!"
-          exit 1
-        fi
-        
-        cp ../out/kernel/arch/arm64/boot/Image.gz* ../prebuilt/ 2>/dev/null || true
-      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
+        cp ../out/kernel/arch/arm64/boot/Image ../prebuilt/Image
+        rm -rf out/kernel kernel-source # Save space
 
-
-    - name: Building recovery with prebuilt kernel
+    - name: Building Recovery
+      working-directory: ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
       run: |
-        cd ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
-        set +e
+        # Inject kernel into device tree
+        mkdir -p ${{ github.event.inputs.DEVICE_PATH }}/prebuilt
+        cp prebuilt/Image ${{ github.event.inputs.DEVICE_PATH }}/prebuilt/Image
+        
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
-        export SOONG_ALLOW_MISSING_DEPENDENCIES=true
-        
-        # Inject prebuilt kernel path into device tree
-        cat << 'EOF' >> ${{ github.event.inputs.DEVICE_PATH }}/device.mk
-        
-        # Prebuilt kernel configuration for recovery build
-        TARGET_PREBUILT_KERNEL := $(LOCAL_PATH)/prebuilt/Image
-        BOARD_KERNEL_IMAGE_NAME := Image
-        EOF
-        
-        # Create prebuilt directory in device tree and copy kernel
-        mkdir -p ${{ github.event.inputs.DEVICE_PATH }}/prebuilt
-        cp ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/prebuilt/Image ${{ github.event.inputs.DEVICE_PATH }}/prebuilt/Image
-        
-        # Also copy to common tree if it exists
-        if [ -d "${{ github.event.inputs.COMMON_PATH }}" ]; then
-          mkdir -p ${{ github.event.inputs.COMMON_PATH }}/prebuilt
-          cp ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/prebuilt/Image* ${{ github.event.inputs.COMMON_PATH }}/prebuilt/ 2>/dev/null || true
-          
-          cat << 'EOF' >> ${{ github.event.inputs.COMMON_PATH }}/common.mk
-        TARGET_PREBUILT_KERNEL := $(LOCAL_PATH)/prebuilt/Image
-        BOARD_KERNEL_IMAGE_NAME := Image
-        EOF
-        fi
-        
-        # Alternative: Set environment variable for prebuilt kernel (some builds use this)
-        export TARGET_PREBUILT_KERNEL=${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/prebuilt/Image
-        
-        # Add cmdline for recovery
-        cat << 'EOF' >> ${{ github.event.inputs.DEVICE_PATH }}/device.mk
-        BOARD_KERNEL_CMDLINE += sec_reboot=recovery
-        EOF
-        
-        # Inject bootconfig for recovery
-        
-        set -e
-        lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng && make clean && mka adbd ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all)
-      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
-      continue-on-error: true
+        lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng
+        mka ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all)
 
-    - name: Check the output directory before uploading
-      run: |
-        ls -al ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/out/target/product/
-        echo
-        ls -al ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/
-
-    - name: Upload to Release
-      uses: softprops/action-gh-release@v1
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
       with:
-        files: |
+        name: OrangeFox-${{ github.event.inputs.DEVICE_NAME }}
+        path: |
           ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/*.img
           ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/*.zip
-        name: ${{ github.event.inputs.DEVICE_NAME }}-${{ github.run_id }}
-        tag_name: ${{ github.run_id }}
-        body: |
-          Manifest: ${{ github.event.inputs.MANIFEST_BRANCH }}
-          Device: ${{ github.event.inputs.DEVICE_NAME }}
-          Target: ${{ github.event.inputs.BUILD_TARGET }}
-          Kernel: Built with custom config flags (debug/development)
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
