@@ -15,6 +15,13 @@ jobs:
           sudo apt update
           sudo apt install -y bc build-essential libssl-dev libelf-dev flex bison libssl-dev libelf-dev clang-14 lld-14 llvm-14 git gcc-aarch64-linux-gnu libarchive-tools
 
+      - name: Download AOSP Clang
+        run: |
+          mkdir -p clang
+          # This downloads a stable AOSP Clang (r416183b)
+          curl -L "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/master-kernel-build-2021/clang-r416183b.tar.gz" -o clang.tgz
+          tar -xzf clang.tgz -C clang
+
       - name: Clone Kernel Source
         run: |
           # Replace with your actual M14/Exynos 1330 repository link
