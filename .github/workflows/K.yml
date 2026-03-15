@@ -18,9 +18,10 @@ jobs:
       - name: Download AOSP Clang
         run: |
           mkdir -p clang
-           # This downloads Clang r450784d (v14.0.6) used for Android T/13 kernels
-          curl -L "https://android.googlesource.com" -o clang.tgz
+          # This downloads a stable AOSP Clang (r416183b)
+          curl -L "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/master-kernel-build-2021/clang-r416183b.tar.gz" -o clang.tgz
           tar -xzf clang.tgz -C clang
+
     
       - name: Clone Kernel Source
         run: |
