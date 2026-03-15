@@ -118,14 +118,18 @@ jobs:
         swap-size-gb: 12
      
 
-    - name: Clone and Build Kernel with custom config flags
+    - name: Clone and Build Kernel with GCC
       run: |
+        # 1. Force install the correct GCC cross-compiler
+        sudo apt update
+        sudo apt install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+
         cd ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
         
         # Clone kernel source
         git clone ${{ github.event.inputs.KERNEL_SOURCE_URL }} -b ${{ github.event.inputs.KERNEL_SOURCE_BRANCH }} kernel-source
         
-        # Create kernel config fragment with all the required flags
+        # Create kernel config fragment
         cat << 'KCONFIG' > kernel-config-fragment
         CONFIG_PRODUCTSHIP=n
         CONFIG_PANIC_ON_OOPS=y
@@ -166,45 +170,39 @@ jobs:
         CONFIG_PSTORE_RAM_RECORD_SIZE=0x20000
         KCONFIG
         
-        # Setup kernel build environment
+        # Setup kernel build environment (Removed Clang logic)
         export ARCH=arm64
         export CROSS_COMPILE=aarch64-linux-gnu-
         export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
-        
-        # Find clang in Android build environment
-        CLANG_PATH=$(find prebuilts -name "clang*" -type d | head -1)
-        if [ -n "$CLANG_PATH" ]; then
-          export CC=$(find $CLANG_PATH -name "clang" -type f | head -1)
-          export CLANG_TRIPLE=aarch64-linux-gnu-
-        fi
         
         # Prepare kernel build directory
         mkdir -p out/kernel
         cd kernel-source
         
-        # Load base defconfig and merge with fragment
+        # 2. Load base defconfig (Uses CROSS_COMPILE automatically)
         make O=../out/kernel ARCH=arm64 ${{ github.event.inputs.KERNEL_DEFCONFIG }}
         
         # Merge config fragment
         cat ../kernel-config-fragment >> ../out/kernel/.config
         
-        # Update config to include all fragment settings
+        # Update config
         make O=../out/kernel ARCH=arm64 olddefconfig
         
-        # Build the kernel
-        make O=../out/kernel ARCH=arm64 -j$(nproc --all)
+        # 3. Build the kernel using GCC
+        make O=../out/kernel ARCH=arm64 CROSS_COMPILE=$CROSS_COMPILE -j$(nproc --all)
         
-        # Verify kernel image was built
-        ls -la ../out/kernel/arch/arm64/boot/
-        
-        # Copy kernel image to prebuilt location
+        # Verify and Copy
         mkdir -p ../prebuilt
-        cp ../out/kernel/arch/arm64/boot/Image ../prebuilt/Image
-        cp ../out/kernel/arch/arm64/boot/Image.gz ../prebuilt/Image.gz 2>/dev/null || true
-        cp ../out/kernel/arch/arm64/boot/Image.gz-dtb ../prebuilt/Image.gz-dtb 2>/dev/null || true
+        if [ -f ../out/kernel/arch/arm64/boot/Image ]; then
+          cp ../out/kernel/arch/arm64/boot/Image ../prebuilt/Image
+          echo "Kernel Image built successfully"
+        else
+          echo "Error: Kernel Image not found!"
+          exit 1
+        fi
         
-        echo "Kernel built successfully at: $(pwd)/../prebuilt/"
-        ls -la ../prebuilt/
+        # Optional: Copy compressed images if they exist
+        cp ../out/kernel/arch/arm64/boot/Image.gz* ../prebuilt/ 2>/dev/null || true
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}
 
     - name: Building recovery with prebuilt kernel
