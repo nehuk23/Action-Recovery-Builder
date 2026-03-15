@@ -42,6 +42,7 @@ jobs:
           CONFIG_SEC_SBOOT_CHECK=n
           CONFIG_PSTORE=y
           CONFIG_PSTORE_CONSOLE=y
+          CONFIG_DEBUG_INFO_BTF=n
           CONFIG_PSTORE_PMSG=y
           CONFIG_PSTORE_RAM=y
           CONFIG_PSTORE_RAM_ANNOTATION=y
