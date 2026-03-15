@@ -18,10 +18,10 @@ jobs:
       - name: Download AOSP Clang
         run: |
           mkdir -p clang
-          # The correct direct download link for Clang r450784d (v14.0.6)
+           # This downloads Clang r450784d (v14.0.6) used for Android T/13 kernels
           curl -L "https://android.googlesource.com" -o clang.tgz
           tar -xzf clang.tgz -C clang
-
+    
       - name: Clone Kernel Source
         run: |
           git clone --depth=1 https://github.com/nehuk23/android_kernel_samsung_s5e8535.git kernel-source
