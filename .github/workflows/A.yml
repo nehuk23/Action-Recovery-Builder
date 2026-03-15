@@ -1,4 +1,4 @@
-name: OFRP Recovery Build
+gname: OFRP Recovery Build
 
 on:
   workflow_dispatch:
@@ -80,7 +80,7 @@ jobs:
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}
       run: |
         sudo apt update
-        sudo apt install git aria2 gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu -y
+        sudo apt install binutils git aria2 gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu -y
         git clone https://gitlab.com/OrangeFox/misc/scripts
         cd scripts
         sudo bash setup/android_build_env.sh
@@ -95,7 +95,7 @@ jobs:
         ./orangefox_sync.sh --branch ${{ github.event.inputs.MANIFEST_BRANCH }} --path ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
 
     - name: Clone Trees
-      working-directory: ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
+      working-directory:  ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
       run: |
         git clone ${{ github.event.inputs.DEVICE_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ./${{ github.event.inputs.DEVICE_PATH }}
         if [ -n "${{ github.event.inputs.COMMON_TREE_URL }}" ]; then
