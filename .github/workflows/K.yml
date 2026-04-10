@@ -39,8 +39,8 @@ jobs:
         run: |
           mkdir -p clang
           cd clang
-          # Full direct link to the r450784d toolchain archive from Google Source
-          wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/master/clang-r450784d.tar.gz
+          # Use the specific android13-release branch path for r450784d
+          wget -q https://googlesource.com
           tar -xzf clang-r450784d.tar.gz
           echo "$(pwd)/bin" >> $GITHUB_PATH
 
