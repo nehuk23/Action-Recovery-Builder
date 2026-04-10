@@ -6,15 +6,15 @@ on:
       kernel_url:
         description: 'Kernel Source URL'
         required: true
-        default: 'https://github.com'
+        default: 'https://github.com/nehuk23/android_kernel_samsung_s5e8535.git'
       kernel_branch:
         description: 'Kernel Branch'
         required: true
-        default: 'main'
+        default: 'lineage-23.2'
       config_name:
         description: 'Defconfig Name'
         required: true
-        default: 'vendor/device_defconfig'
+        default: 'm14x_defconfig'
       clang_version:
         description: 'AOSP Clang Version (e.g., r450784d)'
         required: true
