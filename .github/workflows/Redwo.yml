@@ -1,57 +1,62 @@
-name: Build RedWolf Recovery
+name: RedWolf Recovery Builder
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+    inputs:
+      DEVICE_TREE_URL:
+        description: 'Device Tree URL (e.g., https://github.com)'
+        required: true
+        default: 'https://github.com/nehuk23/1'
+      DEVICE_TREE_BRANCH:
+        description: 'Device Tree Branch'
+        required: true
+        default: 'android-12.1'
+      DEVICE_VENDOR:
+        description: 'Device Vendor (e.g., xiaomi)'
+        required: true
+        default: 'samsung'
+      DEVICE_NAME:
+        description: 'Device Codename (e.g., mido)'
+        required: true
+        default: 'm14x'
 
 jobs:
   build:
-    name: Build RedWolf
-    runs-on: ubuntu-22.04
-
-    env:
-      DEVICE: m14x   # e.g., "exynos2100"
-      VENDOR: samsung            # e.g., "samsung"
-      USE_CCACHE: 1
-      CCACHE_DIR: ${{ github.workspace }}/.ccache
-
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout Source
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
+      - name: Maximize Build Space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo apt clean
 
       - name: Install Dependencies
         run: |
           sudo apt update
-          sudo apt install -y git-core gnupg flex bison gperf build-essential \
-          zip curl zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 \
-          lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z1-dev ccache \
-          libgl1-mesa-dev libxml2-utils xsltproc unzip bc python3 openjdk-11-jdk
+          sudo apt install -y bc build-essential zip curl libstdc++6 git wget python3 gcc clang libssl-dev repo rsync
+          git config --global user.name "BuildBot"
+          git config --global user.email "bot@example.com"
 
-      - name: Set Java
+      - name: Sync RedWolf Source
         run: |
-          echo "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64" >> $GITHUB_ENV
-          echo "/usr/lib/jvm/java-11-openjdk-amd64/bin" >> $GITHUB_PATH
+          mkdir ~/redwolf && cd ~/redwolf
+          repo init -u https://github.com -b 6.0
+          repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
 
-      - name: Sync Repo
+      - name: Clone Device Tree
         run: |
-          repo init -u https://github.com/zlmone/rw_recovery.git -b rw
-          repo sync -c -j$(nproc) --no-clone-bundle --no-tags
+          cd ~/redwolf
+          git clone ${{ github.event.inputs.DEVICE_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} device/${{ github.event.inputs.DEVICE_VENDOR }}/${{ github.event.inputs.DEVICE_NAME }}
 
-      - name: Initialize Build
+      - name: Build RedWolf
         run: |
-          . build/envsetup.sh
-          lunch redwolf_${DEVICE}-eng
+          cd ~/redwolf
+          source build/envsetup.sh
+          export ALLOW_MISSING_DEPENDENCIES=true
+          lunch twrp_${{ github.event.inputs.DEVICE_NAME }}-eng
+          mka recoveryimage -j$(nproc --all)
 
-      - name: Build Recovery
-        run: |
-          mka recoveryimage -j$(nproc)
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+      - name: Upload Recovery Image
+        uses: actions/upload-artifact@v4
         with:
-          name: redwolf-recovery-${DEVICE}
-          path: out/target/product/${DEVICE}/recovery.img
+          name: RedWolf-${{ github.event.inputs.DEVICE_NAME }}
+          path: ~/redwolf/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/recovery.img
