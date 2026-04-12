@@ -1,0 +1,57 @@
+name: Build RedWolf Recovery
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build RedWolf
+    runs-on: ubuntu-22.04
+
+    env:
+      DEVICE: your_device_codename   # e.g., "exynos2100"
+      VENDOR: your_vendor            # e.g., "samsung"
+      USE_CCACHE: 1
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git-core gnupg flex bison gperf build-essential \
+          zip curl zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 \
+          lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z1-dev ccache \
+          libgl1-mesa-dev libxml2-utils xsltproc unzip bc python3 openjdk-11-jdk
+
+      - name: Set Java
+        run: |
+          echo "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64" >> $GITHUB_ENV
+          echo "/usr/lib/jvm/java-11-openjdk-amd64/bin" >> $GITHUB_PATH
+
+      - name: Sync Repo
+        run: |
+          repo init -u https://github.com/zlmone/rw_recovery.git -b rw
+          repo sync -c -j$(nproc) --no-clone-bundle --no-tags
+
+      - name: Initialize Build
+        run: |
+          . build/envsetup.sh
+          lunch redwolf_${DEVICE}-eng
+
+      - name: Build Recovery
+        run: |
+          mka recoveryimage -j$(nproc)
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: redwolf-recovery-${DEVICE}
+          path: out/target/product/${DEVICE}/recovery.img
