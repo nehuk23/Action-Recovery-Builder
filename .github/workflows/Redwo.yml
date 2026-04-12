@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-22.04
 
     env:
-      DEVICE: your_device_codename   # e.g., "exynos2100"
-      VENDOR: your_vendor            # e.g., "samsung"
+      DEVICE: m14x   # e.g., "exynos2100"
+      VENDOR: samsung            # e.g., "samsung"
       USE_CCACHE: 1
       CCACHE_DIR: ${{ github.workspace }}/.ccache
 
